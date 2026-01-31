@@ -64,6 +64,22 @@ public class CartManager : MonoBehaviour
             totalPrice -= product.price;
             UpdatePriceUI();
             collectedProducts.Remove(productObject);
+            // Restaurar físicas e colisores para permitir que o produto volte a interagir com o mundo
+            Rigidbody rb = productObject.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+                rb.detectCollisions = true;
+            }
+
+            Collider col = productObject.GetComponent<Collider>();
+            if (col != null)
+            {
+                col.isTrigger = false;
+            }
+
+            // Solta o objeto do carrinho
+            productObject.transform.SetParent(null);
         }
     }
 
@@ -84,5 +100,27 @@ public class CartManager : MonoBehaviour
         {
             priceText.text = "Total: R$ " + totalPrice.ToString("F2");
         }
+        
+        // Atualiza também o GameUI se existir
+        if (GameUI.Instance != null)
+        {
+            GameUI.Instance.UpdateTotalPrice(totalPrice);
+        }
+    }
+
+    // Métodos públicos para acesso aos dados
+    public float GetTotalPrice()
+    {
+        return totalPrice;
+    }
+
+    public int GetItemCount()
+    {
+        return collectedProducts.Count;
+    }
+
+    public System.Collections.Generic.List<GameObject> GetCollectedProducts()
+    {
+        return new System.Collections.Generic.List<GameObject>(collectedProducts);
     }
 }

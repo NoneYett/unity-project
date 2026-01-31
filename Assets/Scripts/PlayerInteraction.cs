@@ -48,7 +48,19 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     // Pega as referências do carrinho que acertamos
                     currentCart = hit.collider.GetComponentInParent<CartMovement>();
+                    if (currentCart == null)
+                    {
+                        Debug.LogWarning("Hit CartHandle but no CartMovement found in parent.");
+                        return;
+                    }
+
                     cartDrivingPosition = currentCart.transform.Find("DrivingPosition");
+                    if (cartDrivingPosition == null)
+                    {
+                        Debug.LogWarning("CartDrivingPosition (child named 'DrivingPosition') not found on cart: " + currentCart.name);
+                        return;
+                    }
+
                     GrabCart();
                 }
             }
@@ -57,6 +69,18 @@ public class PlayerInteraction : MonoBehaviour
 
     void GrabCart()
     {
+        if (currentCart == null)
+        {
+            Debug.LogWarning("Attempted to grab cart but currentCart is null.");
+            return;
+        }
+
+        if (playerController == null || playerBody == null)
+        {
+            Debug.LogWarning("PlayerController or PlayerBody reference is null on PlayerInteraction.");
+            return;
+        }
+
         isPushingCart = true;
 
         // Desativa o controle do jogador e ativa o do carrinho
@@ -74,10 +98,10 @@ public class PlayerInteraction : MonoBehaviour
         isPushingCart = false;
 
         // Ativa o controle do jogador e desativa o do carrinho
-        playerController.enabled = true;
-        currentCart.enabled = false;
+        if (playerController != null) playerController.enabled = true;
+        if (currentCart != null) currentCart.enabled = false;
 
         // "Desprende" o jogador do carrinho
-        playerBody.SetParent(null);
+        if (playerBody != null) playerBody.SetParent(null);
     }
 }

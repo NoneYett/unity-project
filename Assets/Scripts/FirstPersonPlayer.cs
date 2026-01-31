@@ -16,7 +16,7 @@ public class FirstPersonPlayer : MonoBehaviour
     private float rotationX = 0;
 
     [Header("Interação")]
-    public float interactionDistance = 5f; // Mantivemos a distância maior
+    public float interactionDistance = 5f;
     public KeyCode interactionKey = KeyCode.E;
     
     [Header("Sistema de Carrinho")]
@@ -28,15 +28,25 @@ public class FirstPersonPlayer : MonoBehaviour
     public Transform holdPosition;
     private Product heldProduct;
 
+    // Referência ao último objeto olhado para highlight
+    private Product lastLookedProduct;
+    private PauseMenu pauseMenu;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        pauseMenu = Object.FindFirstObjectByType<PauseMenu>();
+        
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
     void Update()
     {
+        // Não processa input se estiver pausado
+        if (pauseMenu != null && pauseMenu.IsPaused())
+            return;
+
         rotationX += -Input.GetAxis("Mouse Y") * lookSpeed;
         rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
         playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
@@ -66,46 +76,26 @@ public class FirstPersonPlayer : MonoBehaviour
 
     void HandleInteraction()
     {
-        // DEBUG #1: Esta mensagem deve aparecer em TODOS os frames.
-        Debug.Log("--- FRAME " + Time.frameCount + " ---");
-
-        // DEBUG #2: Vamos verificar os estados principais
         if (isPushingCart)
         {
-            Debug.Log("Estado Atual: Empurrando o Carrinho.");
-        }
-        else
-        {
-            Debug.Log("Estado Atual: Andando Livremente.");
-        }
+            // Esconde texto de interação enquanto empurra carrinho
+            if (GameUI.Instance != null)
+                GameUI.Instance.ShowInteractionText("[E] Soltar Carrinho");
 
-        if (heldProduct != null)
-        {
-            Debug.Log("Estado da Mão: Segurando o objeto '" + heldProduct.name + "'");
-        }
-        else
-        {
-            Debug.Log("Estado da Mão: Mãos Vazias.");
-        }
-
-
-        // Lógica Principal (com logs internos)
-        if (isPushingCart)
-        {
             if (Input.GetKeyDown(interactionKey))
             {
-                Debug.Log("Ação: Tentando soltar o carrinho...");
                 ReleaseCart();
             }
         }
-        else // Se não estamos empurrando o carrinho...
+        else
         {
             if (heldProduct != null)
             {
+                if (GameUI.Instance != null)
+                    GameUI.Instance.ShowInteractionText("[E] Soltar " + heldProduct.productName);
+
                 if (Input.GetKeyDown(interactionKey))
                 {
-                    Debug.Log("Ação: Tentando colocar/soltar o item '" + heldProduct.name + "'...");
-                    
                     int layerMask = ~LayerMask.GetMask("Player");
                     Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
                     RaycastHit hit;
@@ -117,22 +107,27 @@ public class FirstPersonPlayer : MonoBehaviour
                             CartManager cartManager = hit.collider.GetComponent<CartManager>();
                             if (cartManager != null)
                             {
-                                Debug.Log("--> Sucesso! Colocando item no carrinho.");
                                 cartManager.AddProductToCart(heldProduct.gameObject);
-                                heldProduct = null; 
+                                
+                                // Marca na lista de compras
+                                if (ShoppingList.Instance != null)
+                                    ShoppingList.Instance.MarkItemCollected(heldProduct.productName);
+                                
+                                // Toca som
+                                if (AudioManager.Instance != null)
+                                    AudioManager.Instance.PlayCartAdd();
+                                
+                                heldProduct = null;
                                 return;
                             }
                         }
                     }
                     
-                    Debug.Log("--> Alvo não era o carrinho. Soltando item no chão.");
                     DropProduct();
                 }
             }
-            else // Se não estamos segurando nada...
+            else
             {
-                // DEBUG #3: Se o estado estiver correto, esta mensagem DEVE aparecer.
-                Debug.Log("Ação: Procurando por itens para interagir...");
                 CheckForInteractables();
             }
         }
@@ -144,10 +139,20 @@ public class FirstPersonPlayer : MonoBehaviour
         Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
         RaycastHit hit;
 
+        // Limpa highlight do objeto anterior
+        if (lastLookedProduct != null)
+        {
+            lastLookedProduct.OnLookAway();
+            lastLookedProduct = null;
+        }
+
         if (Physics.Raycast(ray, out hit, interactionDistance, layerMask))
         {
             if (hit.collider.CompareTag("CartHandle"))
             {
+                if (GameUI.Instance != null)
+                    GameUI.Instance.ShowInteractionText("[E] Empurrar Carrinho");
+
                 if (Input.GetKeyDown(interactionKey))
                 {
                     currentCart = hit.collider.GetComponentInParent<CartMovement>();
@@ -160,27 +165,31 @@ public class FirstPersonPlayer : MonoBehaviour
                 Product product = hit.collider.GetComponent<Product>();
                 if (product != null)
                 {
+                    // Ativa highlight
+                    product.OnLookAt();
+                    lastLookedProduct = product;
+
+                    // Mostra texto de interação
+                    if (GameUI.Instance != null)
+                        GameUI.Instance.ShowInteractionText(product.GetInteractionText());
+
                     if (product.isCollected)
                     {
-                        // DEBUG 1: Estamos detectando um produto já coletado?
-                        Debug.Log("Produto COLETADO detectado: " + product.name);
-
                         if (Input.GetKeyDown(interactionKey))
                         {
-                            // DEBUG 2: A tecla de interação foi pressionada?
-                            Debug.Log("Tecla 'E' pressionada para remover o item.");
-
                             CartManager cart = hit.collider.GetComponentInParent<CartManager>();
-                            if (cart == null)
+                            if (cart != null)
                             {
-                                // DEBUG 3: Se chegarmos aqui, este é o erro.
-                                Debug.LogError("FALHA CRÍTICA: Não foi possível encontrar o 'CartManager' subindo a partir do produto! Verifique a hierarquia.");
-                            }
-                            else
-                            {
-                                // DEBUG 4: Se chegarmos aqui, tudo deveria funcionar.
-                                Debug.Log("SUCESSO: CartManager encontrado! Removendo produto...");
                                 cart.RemoveProductFromCart(product.gameObject);
+                                
+                                // Desmarca da lista de compras
+                                if (ShoppingList.Instance != null)
+                                    ShoppingList.Instance.UnmarkItem(product.productName);
+                                
+                                // Toca som
+                                if (AudioManager.Instance != null)
+                                    AudioManager.Instance.PlayCartRemove();
+                                
                                 PickupProduct(product);
                             }
                         }
@@ -189,11 +198,27 @@ public class FirstPersonPlayer : MonoBehaviour
                     {
                         if (Input.GetKeyDown(interactionKey))
                         {
+                            // Toca som
+                            if (AudioManager.Instance != null)
+                                AudioManager.Instance.PlayPickup();
+                            
                             PickupProduct(product);
                         }
                     }
                 }
             }
+            else
+            {
+                // Não está olhando para nada interativo
+                if (GameUI.Instance != null)
+                    GameUI.Instance.HideInteractionText();
+            }
+        }
+        else
+        {
+            // Não está olhando para nada
+            if (GameUI.Instance != null)
+                GameUI.Instance.HideInteractionText();
         }
     }
 
@@ -212,10 +237,17 @@ public class FirstPersonPlayer : MonoBehaviour
 
     void DropProduct()
     {
+        if (heldProduct == null) return;
+        
         Rigidbody rb = heldProduct.GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = false;
-        heldProduct.GetComponent<Collider>().isTrigger = true;
+        heldProduct.GetComponent<Collider>().isTrigger = false;
         heldProduct.transform.SetParent(null);
+        
+        // Toca som
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayDrop();
+        
         heldProduct = null;
     }
 
@@ -235,5 +267,8 @@ public class FirstPersonPlayer : MonoBehaviour
         currentCart.enabled = false;
         transform.SetParent(null);
         controller.enabled = true;
+        
+        if (GameUI.Instance != null)
+            GameUI.Instance.HideInteractionText();
     }
 }
