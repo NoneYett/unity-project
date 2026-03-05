@@ -100,27 +100,5 @@ public class CartManager : MonoBehaviour
         {
             priceText.text = "Total: R$ " + totalPrice.ToString("F2");
         }
-        
-        // Atualiza também o GameUI se existir
-        if (GameUI.Instance != null)
-        {
-            GameUI.Instance.UpdateTotalPrice(totalPrice);
-        }
-    }
-
-    // Métodos públicos para acesso aos dados
-    public float GetTotalPrice()
-    {
-        return totalPrice;
-    }
-
-    public int GetItemCount()
-    {
-        return collectedProducts.Count;
-    }
-
-    public System.Collections.Generic.List<GameObject> GetCollectedProducts()
-    {
-        return new System.Collections.Generic.List<GameObject>(collectedProducts);
     }
 }
