@@ -25,34 +25,48 @@ public class CartManager : MonoBehaviour
         }
     }
 
-    public void AddProductToCart(GameObject productObject)
+public void AddProductToCart(GameObject productObject)
+{
+    Product product = productObject.GetComponent<Product>();
+    if (product == null || product.isCollected) return;
+
+    product.isCollected = true;
+    totalPrice += product.price;
+    UpdatePriceUI();
+
+    // Faz o item ser filho do carrinho para andar junto com ele
+    productObject.transform.SetParent(cartInside, true);
+
+    // LIGA A FÍSICA PARA O ITEM CAIR E BATER NOS OUTROS
+    Rigidbody rb = productObject.GetComponent<Rigidbody>();
+    if (rb != null)
     {
-        Product product = productObject.GetComponent<Product>();
-        if (product == null || product.isCollected) return;
-
-        product.isCollected = true;
-        totalPrice += product.price;
-        UpdatePriceUI();
-
-        Rigidbody rb = productObject.GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            rb.isKinematic = true;
-            rb.detectCollisions = false;
-        }
+        rb.isKinematic = false; // A gravidade puxa ele
+        rb.detectCollisions = true; // Ele bate nos outros itens
         
-        // --- LINHA CORRIGIDA ---
-        // Em vez de desativar o collider, nós o transformamos em um Trigger.
-        // Assim, o Raycast ainda pode detectá-lo.
-        Collider col = productObject.GetComponent<Collider>();
-        if (col != null) col.isTrigger = true;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // Impede o tunelamento
+        rb.interpolation = RigidbodyInterpolation.Interpolate; // Deixa o movimento suave junto com o carrinho
 
-        collectedProducts.Add(productObject);
-        productObject.transform.SetParent(cartInside, false);
-        productObject.transform.localPosition = CalculateLocalPosition(collectedProducts.Count - 1);
-        productObject.transform.localRotation = Quaternion.identity;
+        // Zera a força que ele tinha na sua mão para ele não ser arremessado
+        rb.velocity = Vector3.zero; 
+        rb.angularVelocity = Vector3.zero;
     }
 
+    // Deixa o colisor sólido (não fantasma)
+    Collider col = productObject.GetComponent<Collider>();
+    if (col != null) col.isTrigger = false; 
+
+    collectedProducts.Add(productObject);
+
+    // O "PULO DO GATO": Solta o item um pouco acima do fundo do carrinho, 
+    // com uma leve variação aleatória no X e Z para eles não caírem empilhados como uma torre perfeita.
+    float randomX = Random.Range(-0.2f, 0.2f);
+    float randomZ = Random.Range(-0.2f, 0.2f);
+    productObject.transform.localPosition = new Vector3(randomX, 1.0f, randomZ);
+
+    // Garante a escala que você está usando
+    productObject.transform.localScale = new Vector3(9f, 9f, 9f); 
+}
     public void RemoveProductFromCart(GameObject productObject)
     {
         Product product = productObject.GetComponent<Product>();
@@ -64,6 +78,22 @@ public class CartManager : MonoBehaviour
             totalPrice -= product.price;
             UpdatePriceUI();
             collectedProducts.Remove(productObject);
+            // Restaurar físicas e colisores para permitir que o produto volte a interagir com o mundo
+            Rigidbody rb = productObject.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+                rb.detectCollisions = true;
+            }
+
+            Collider col = productObject.GetComponent<Collider>();
+            if (col != null)
+            {
+                col.isTrigger = false;
+            }
+
+            // Solta o objeto do carrinho
+            productObject.transform.SetParent(null);
         }
     }
 
@@ -84,5 +114,15 @@ public class CartManager : MonoBehaviour
         {
             priceText.text = "Total: R$ " + totalPrice.ToString("F2");
         }
+    }
+
+    public float GetTotalPrice()
+    {
+        return totalPrice;
+    }
+
+    public int GetItemCount()
+    {
+        return collectedProducts.Count;
     }
 }

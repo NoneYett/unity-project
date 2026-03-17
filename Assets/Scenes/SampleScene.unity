@@ -706,8 +706,8 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 3.3365798, y: 6.2635307, z: 4.6677995}
-  m_Center: {x: 1.0903661, y: 1.1315298, z: 0.09322667}
+  m_Size: {x: 3.3365798, y: 1.595931, z: 4.6677995}
+  m_Center: {x: 1.0903661, y: -1.20227, z: 0.09322667}
 --- !u!114 &637136554
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -987,6 +987,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   productName: Apple
   price: 3.5
+  category: 6
+  description: 
   isCollected: 0
 --- !u!135 &1477864448
 SphereCollider:
@@ -1262,6 +1264,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   productName: Apple
   price: 3.5
+  category: 6
+  description: 
   isCollected: 0
 --- !u!54 &1891635898
 Rigidbody:
