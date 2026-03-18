@@ -16,6 +16,18 @@ public class CheckoutManager : MonoBehaviour
     [Header("Referências")]
     public CartManager cartManager;
 
+    [Header("Nova UI do Cupom")]
+    public TextMeshProUGUI receiptText; // Arraste o TextoListaCompras pra cá!
+
+    // Classe auxiliar para guardar a matemática de cada produto
+    private class ItemAgrupado
+    {
+        public string nome;
+        public int quantidade;
+        public float precoUnidade;
+        public float precoTotal;
+    }
+
     private bool isCheckoutActive = false;
     private bool hasCompletedCheckout = false;
 
@@ -27,17 +39,27 @@ public class CheckoutManager : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("ShoppingCart") && !hasCompletedCheckout)
+        if (hasCompletedCheckout) return;
+
+        // Ao invés de usar Tag, ele detecta a existência do SEU script do carrinho
+        CartManager detectado = other.GetComponentInParent<CartManager>();
+        
+        if (detectado != null)
         {
+            cartManager = detectado; // O caixa "sequestra" o carrinho que entrou
             OpenCheckout();
         }
     }
 
     void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("ShoppingCart") && !hasCompletedCheckout)
+        if (hasCompletedCheckout) return;
+
+        CartManager detectado = other.GetComponentInParent<CartManager>();
+        if (detectado != null && detectado == cartManager)
         {
             CloseCheckout();
+            cartManager = null; // Limpa a memória quando o carrinho vai embora
         }
     }
 
@@ -77,35 +99,68 @@ public class CheckoutManager : MonoBehaviour
     {
         if (cartManager == null) return;
 
-        // O CartManager precisará expor esses dados
-        // Por enquanto usamos reflexão ou métodos públicos que adicionaremos
+        // 1. O DICIONÁRIO: Vai agrupar os itens iguais
+        Dictionary<string, ItemAgrupado> itensComprados = new Dictionary<string, ItemAgrupado>();
 
-        float total = GetCartTotal();
-        int itemCount = GetCartItemCount();
+        // Varre tudo que está fisicamente dentro do carrinho
+        foreach (GameObject obj in cartManager.collectedProducts)
+        {
+            Product produto = obj.GetComponent<Product>();
+            if (produto != null)
+            {
+                // Se o produto já está na lista, só aumenta a quantidade e o preço
+                if (itensComprados.ContainsKey(produto.productName))
+                {
+                    itensComprados[produto.productName].quantidade++;
+                    itensComprados[produto.productName].precoTotal += produto.price;
+                }
+                // Se é a primeira vez que acha esse produto, cria o registro dele
+                else
+                {
+                    itensComprados.Add(produto.productName, new ItemAgrupado
+                    {
+                        nome = produto.productName,
+                        quantidade = 1,
+                        precoUnidade = produto.price,
+                        precoTotal = produto.price
+                    });
+                }
+            }
+        }
 
+        // 2. O TEXTO: Montando o visual do Cupom Fiscal
+        string textoDoCupom = "CUPOM FISCAL\n----------------------\n";
+
+        foreach (var item in itensComprados.Values)
+        {
+            // Formato final: "3x Maçã (R$ 2.50) = R$ 7.50"
+            textoDoCupom += $"{item.quantidade}x {item.nome} (R$ {item.precoUnidade:F2}) = R$ {item.precoTotal:F2}\n";
+        }
+
+        // 3. ENVIANDO PARA A TELA
+        if (receiptText != null)
+        {
+            receiptText.text = textoDoCupom;
+        }
+
+        // Mantém o Total Geral funcionando lá embaixo
         if (totalText != null)
-            totalText.text = "Total: R$ " + total.ToString("F2");
-
-        if (itemsCountText != null)
-            itemsCountText.text = itemCount + " itens no carrinho";
-
-        // Calcular pontuação baseada em lista de compras
-        int score = CalculateScore();
-        if (scoreText != null)
-            scoreText.text = "Pontuação: " + score + " pontos";
+        {
+            totalText.text = "TOTAL A PAGAR: R$ " + cartManager.totalPrice.ToString("F2");
+        }
     }
 
     float GetCartTotal()
     {
         if (cartManager != null)
-            return cartManager.GetTotalPrice();
+            return cartManager.totalPrice; // Lê a variável pública que já existe no seu CartManager
         return 0f;
     }
 
     int GetCartItemCount()
     {
         if (cartManager != null)
-            return cartManager.GetItemCount();
+            return cartManager.collectedProducts.Count; // Conta o tamanho da sua lista de produtos
         return 0;
     }
 
@@ -118,11 +173,23 @@ public class CheckoutManager : MonoBehaviour
 
     public void FinishShopping()
     {
-        hasCompletedCheckout = true;
-        Time.timeScale = 1f;
-        
-        // Mostrar tela de vitória ou voltar ao menu
-        SceneManager.LoadScene("MainMenu");
+        // 1. Destrói os modelos 3D que estão fisicamente dentro do carrinho
+        if (cartManager != null)
+        {
+            foreach (GameObject item in cartManager.collectedProducts)
+            {
+                Destroy(item);
+            }
+            
+            // 2. Zera a memória e a conta do carrinho
+            cartManager.collectedProducts.Clear();
+            cartManager.totalPrice = 0f;
+        }
+
+        // 3. Libera o jogador para continuar jogando
+        hasCompletedCheckout = false; // Permite passar no caixa de novo na próxima compra
+        CloseCheckout();
+        cartManager = null; // Desconecta do carrinho atual
     }
 
     public void ContinueShopping()

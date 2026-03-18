@@ -14,8 +14,8 @@ public class CartManager : MonoBehaviour
     public float stackXSpacing = 0.5f; // Aumentei o valor padrão
     public float stackZSpacing = 0.5f; // Aumentei o valor padrão
 
-    private float totalPrice = 0f;
-    private List<GameObject> collectedProducts = new List<GameObject>();
+    public float totalPrice = 0f;
+    public List<GameObject> collectedProducts = new List<GameObject>();
 
     void Start()
     {
