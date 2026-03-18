@@ -65,7 +65,7 @@ public void AddProductToCart(GameObject productObject)
     productObject.transform.localPosition = new Vector3(randomX, 1.0f, randomZ);
 
     // Garante a escala que você está usando
-    productObject.transform.localScale = new Vector3(9f, 9f, 9f); 
+    //productObject.transform.localScale = new Vector3(9f, 9f, 9f); 
 }
     public void RemoveProductFromCart(GameObject productObject)
     {

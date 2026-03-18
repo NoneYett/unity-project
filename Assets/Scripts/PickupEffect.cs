@@ -40,11 +40,13 @@ public class PickupEffect : MonoBehaviour
         }
     }
 
-    public void OnPickedUp()
-    {
-        isFloating = false;
-        onPickup?.Invoke();
-    }
+public void OnPickedUp()
+{
+    isFloating = false;
+    // Garante que a escala local seja 1 no momento em que entra na mão
+    transform.localScale = originalScale;
+    onPickup?.Invoke();
+}
 
     public void OnDropped()
     {

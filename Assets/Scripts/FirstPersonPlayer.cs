@@ -259,7 +259,7 @@ void AddProductToCart(CartManager cart)
         heldProduct.transform.localRotation = Quaternion.identity;
 
         // --- LINHA NOVA: Força a escala a ser sempre 9 (ou o valor que você quiser)
-        heldProduct.transform.localScale = new Vector3(9f, 9f, 9f);
+        //heldProduct.transform.localScale = transform.localScale;
     }
 
     void DropProduct()
@@ -280,7 +280,7 @@ void AddProductToCart(CartManager cart)
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayDrop();
         
-        heldProduct.transform.localScale = new Vector3(9f, 9f, 9f);
+        //heldProduct.transform.localScale = transform.localScale;
 
         heldProduct = null;
     }

@@ -21,7 +21,7 @@ public class BackupConfigurator : MonoBehaviour
         GameObject store = GameObject.Find("Storepack");
         if (store != null)
         {
-            store.transform.localScale = new Vector3(100f, 100f, 100f);
+            store.transform.localScale = new Vector3(1f, 1f, 1f);
             Debug.Log("Mercado escalado!");
         }
 
