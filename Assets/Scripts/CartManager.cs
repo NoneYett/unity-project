@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
+using System.Collections;
 
 public class CartManager : MonoBehaviour
 {
@@ -26,47 +27,66 @@ public class CartManager : MonoBehaviour
     }
 
 public void AddProductToCart(GameObject productObject)
-{
-    Product product = productObject.GetComponent<Product>();
-    if (product == null || product.isCollected) return;
-
-    product.isCollected = true;
-    totalPrice += product.price;
-    UpdatePriceUI();
-
-    // Faz o item ser filho do carrinho para andar junto com ele
-    productObject.transform.SetParent(cartInside, true);
-
-    // LIGA A FÍSICA PARA O ITEM CAIR E BATER NOS OUTROS
-    Rigidbody rb = productObject.GetComponent<Rigidbody>();
-    if (rb != null)
     {
-        rb.isKinematic = false; // A gravidade puxa ele
-        rb.detectCollisions = true; // Ele bate nos outros itens
-        
-        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // Impede o tunelamento
-        rb.interpolation = RigidbodyInterpolation.Interpolate; // Deixa o movimento suave junto com o carrinho
+        Product product = productObject.GetComponent<Product>();
+        if (product == null || product.isCollected) return;
 
-        // Zera a força que ele tinha na sua mão para ele não ser arremessado
-        rb.velocity = Vector3.zero; 
-        rb.angularVelocity = Vector3.zero;
+        product.isCollected = true;
+        totalPrice += product.price;
+        UpdatePriceUI();
+        collectedProducts.Add(productObject);
+
+        // 1. SOLTA NO MUNDO (Não é filho do carrinho ainda)
+        productObject.transform.SetParent(null);
+
+        // 2. LIGA A FÍSICA REAL
+        Rigidbody rb = productObject.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = false; // A gravidade puxa
+            rb.velocity = Vector3.zero; 
+        }
+
+        Collider col = productObject.GetComponent<Collider>();
+        if (col != null)
+        {
+            col.enabled = true;
+            col.isTrigger = false; // Fica sólido para não atravessar o carrinho
+        }
+
+        // 3. JOGA O ITEM LÁ DE CIMA PARA CAIR NO CESTO
+        // Aumentamos o raio da queda para evitar que caiam exatamente no mesmo pixel
+        float randomX = Random.Range(-0.4f, 0.4f); 
+        float randomZ = Random.Range(-0.4f, 0.4f);
+        productObject.transform.position = cartInside.position + new Vector3(randomX, 0.8f, randomZ);
+        
+        // Dá um giro aleatório para a pilha não ficar parecendo blocos de Tetris
+        productObject.transform.rotation = Random.rotation; 
+
+        // 4. INICIA O CRONÔMETRO DE CONGELAMENTO
+        StartCoroutine(SettleAndFreeze(productObject));
     }
 
-    // Deixa o colisor sólido (não fantasma)
-    Collider col = productObject.GetComponent<Collider>();
-    if (col != null) col.isTrigger = false; 
+    // --- A NOVA ROTINA MÁGICA ---
+    private IEnumerator SettleAndFreeze(GameObject item)
+    {
+        // Espera 1.5 segundos para a física organizar a pilha
+        yield return new WaitForSeconds(1.5f);
 
-    collectedProducts.Add(productObject);
+        if (item != null && collectedProducts.Contains(item))
+        {
+            // Fica "imóvel" para não pesar no carrinho nem causar bugs de rotação
+            Rigidbody rb = item.GetComponent<Rigidbody>();
+            if (rb != null) rb.isKinematic = true;
 
-    // O "PULO DO GATO": Solta o item um pouco acima do fundo do carrinho, 
-    // com uma leve variação aleatória no X e Z para eles não caírem empilhados como uma torre perfeita.
-    float randomX = Random.Range(-0.2f, 0.2f);
-    float randomZ = Random.Range(-0.2f, 0.2f);
-    productObject.transform.localPosition = new Vector3(randomX, 1.0f, randomZ);
+            // MANTÉM SÓLIDO! Assim os próximos itens vão bater nele e empilhar em cima
+            Collider col = item.GetComponent<Collider>();
+            if (col != null) col.isTrigger = false; // <--- A MUDANÇA É AQUI
 
-    // Garante a escala que você está usando
-    //productObject.transform.localScale = new Vector3(9f, 9f, 9f); 
-}
+            item.transform.SetParent(cartInside, true);
+        }
+    }
+
     public void RemoveProductFromCart(GameObject productObject)
     {
         Product product = productObject.GetComponent<Product>();
@@ -89,6 +109,7 @@ public void AddProductToCart(GameObject productObject)
             Collider col = productObject.GetComponent<Collider>();
             if (col != null)
             {
+                col.enabled = true;
                 col.isTrigger = false;
             }
 

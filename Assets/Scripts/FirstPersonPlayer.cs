@@ -15,7 +15,10 @@ public class FirstPersonPlayer : MonoBehaviour
     public float lookSpeed = 2.0f;
     public float lookXLimit = 90.0f;
     private float rotationX = 0;
-    public TextMeshProUGUI textoAviso; // O campo que vai aparecer no Inspector
+
+    [Header("UI Adicional")] 
+    public TextMeshProUGUI productInfoText;
+    public TextMeshProUGUI textoAviso;
 
     [Header("Interação")]
     public float interactionDistance = 5f;
@@ -126,7 +129,7 @@ public class FirstPersonPlayer : MonoBehaviour
                 if (lookingAtCart) 
                     textoAviso.text = "[E] Guardar no Carrinho";
                 else 
-                    textoAviso.text = "[E] Soltar " + heldProduct.productName;
+                    textoAviso.text = "[E] Soltar item";
             }
 
             // Executa a ação (Guardar ou Soltar no chão)
@@ -184,11 +187,18 @@ void CheckForInteractables()
     // 2. Executa a ação baseada no que foi encontrado
     if (detectedProduct != null)
     {
+        UpdateProductInfoUI(detectedProduct);
         ProcessProductInteraction(detectedProduct);
     }
     else if (detectedHandle != null)
     {
-        if (GameUI.Instance != null) textoAviso.text = "[E] Empurrar Carrinho";
+        UpdateProductInfoUI(null);
+        if (textoAviso != null) 
+        {
+            textoAviso.gameObject.SetActive(true);
+            textoAviso.text = "[E] Empurrar Carrinho";
+        }
+
         if (Input.GetKeyDown(interactionKey)) {
             currentCart = detectedHandle.GetComponentInParent<CartMovement>();
             cartDrivingPosition = currentCart.drivingPosition;
@@ -197,16 +207,27 @@ void CheckForInteractables()
     }
     else if (detectedCartBody != null && heldProduct != null)
     {
-        // Agora o código finalmente reconhece o Cart para você guardar o item!
-        if (GameUI.Instance != null) textoAviso.text = "[E] Guardar no Carrinho";
+        UpdateProductInfoUI(null);
+        if (textoAviso != null) 
+        {
+            textoAviso.gameObject.SetActive(true);
+            textoAviso.text = "[E] Guardar no Carrinho";
+        }
+
         if (Input.GetKeyDown(interactionKey)) {
             CartManager cart = detectedCartBody.GetComponentInParent<CartManager>();
             if (cart != null) AddProductToCart(cart);
         }
     }
-    else
+    else // SE NÃO ESTIVER OLHANDO PARA NADA DISSO:
     {
-        if (GameUI.Instance != null) GameUI.Instance.HideInteractionText();
+        UpdateProductInfoUI(null); // Esconde a info do produto
+        
+        // APAGA O TEXTO DE AÇÃO IMEDIATAMENTE
+        if (textoAviso != null) 
+        {
+            textoAviso.gameObject.SetActive(false);
+        }
     }
 }
 
@@ -215,7 +236,11 @@ void ProcessProductInteraction(Product product)
 {
     product.OnLookAt();
     lastLookedProduct = product;
-    if (GameUI.Instance != null) GameUI.Instance.ShowInteractionText(product.GetInteractionText());
+    if (textoAviso != null)
+    {
+        textoAviso.gameObject.SetActive(true);
+        textoAviso.text = "[E] Pegar item";
+    }
 
     if (Input.GetKeyDown(interactionKey))
     {
@@ -237,7 +262,25 @@ void ProcessProductInteraction(Product product)
         }
     }
 }
-// ADICIONE ESTA FUNÇÃO PARA CORRIGIR O ERRO CS0103
+
+// --- NOVA FUNÇÃO AUXILIAR ---
+// Gerencia a exibição do painel de dados do produto no canto superior direito
+void UpdateProductInfoUI(Product product)
+{
+    if (productInfoText == null) return;
+
+    if (product != null)
+    {
+        productInfoText.gameObject.SetActive(true);
+        // Formata: Nome \n Preço (conforme CartManager.cs tem product.price e product.productName)
+        productInfoText.text = product.productName + "\nPreço: R$ " + product.price.ToString("F2");
+    }
+    else
+    {
+        productInfoText.gameObject.SetActive(false);
+    }
+}
+
 void AddProductToCart(CartManager cart)
 {
     if (heldProduct == null) return;
@@ -245,6 +288,7 @@ void AddProductToCart(CartManager cart)
     if (ShoppingList.Instance != null) ShoppingList.Instance.MarkItemCollected(heldProduct.productName); // Nome exato do seu script
     if (AudioManager.Instance != null) AudioManager.Instance.PlayCartAdd();
     heldProduct = null;
+    if (textoAviso != null) textoAviso.gameObject.SetActive(false);
 }
     void PickupProduct(Product product)
     {
@@ -283,6 +327,7 @@ void AddProductToCart(CartManager cart)
         //heldProduct.transform.localScale = transform.localScale;
 
         heldProduct = null;
+        if (textoAviso != null) textoAviso.gameObject.SetActive(false);
     }
 
     void GrabCart()
@@ -300,9 +345,12 @@ void AddProductToCart(CartManager cart)
         isPushingCart = false;
         currentCart.enabled = false;
         transform.SetParent(null);
+        transform.position -= transform.forward * 0.5f;
         controller.enabled = true;
         
         if (GameUI.Instance != null)
             GameUI.Instance.HideInteractionText();
+
+        if (textoAviso != null) textoAviso.gameObject.SetActive(false);
     }
 }
