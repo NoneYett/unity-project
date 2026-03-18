@@ -75,18 +75,20 @@ public void AddProductToCart(GameObject productObject)
 
         if (item != null && collectedProducts.Contains(item))
         {
-            // Fica "imóvel" para não pesar no carrinho nem causar bugs de rotação
+            // 1. A CIRURGIA: Arranca o "cérebro físico" do item.
+            // Isso quebra o paradoxo infinito instantaneamente.
             Rigidbody rb = item.GetComponent<Rigidbody>();
-            if (rb != null) rb.isKinematic = true;
+            if (rb != null) Destroy(rb);
 
-            // MANTÉM SÓLIDO! Assim os próximos itens vão bater nele e empilhar em cima
+            // 2. Mantém o colisor sólido! 
+            // Assim os próximos itens que caírem vão bater nesta garrafa e empilhar nela.
             Collider col = item.GetComponent<Collider>();
-            if (col != null) col.isTrigger = false; // <--- A MUDANÇA É AQUI
+            if (col != null) col.isTrigger = false; 
 
+            // 3. Gruda no carrinho com total segurança.
             item.transform.SetParent(cartInside, true);
         }
     }
-
     public void RemoveProductFromCart(GameObject productObject)
     {
         Product product = productObject.GetComponent<Product>();
