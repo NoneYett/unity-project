@@ -48,7 +48,6 @@ public class FirstPersonPlayer : MonoBehaviour
 
     void Update()
     {
-        // Não processa input se estiver pausado
         if (pauseMenu != null && pauseMenu.IsPaused())
             return;
 
@@ -94,7 +93,7 @@ public class FirstPersonPlayer : MonoBehaviour
             return;
         }
 
-        // 2. ESTADO: SEGURANDO UM PRODUTO (MÃO CHEIA)
+        // 2. ESTADO: SEGURANDO UM PRODUTO
         if (heldProduct != null)
         {
             int layerMask = ~LayerMask.GetMask("Player");
@@ -112,7 +111,7 @@ public class FirstPersonPlayer : MonoBehaviour
                 if (hit.collider.gameObject == heldProduct.gameObject || hit.collider.transform.IsChildOf(heldProduct.transform)) 
                     continue;
 
-                // Verifica o carrinho (as paredes com a tag ShoppingCart)
+                // Verifica o carrinho
                 if (hit.collider.CompareTag("ShoppingCart"))
                 {
                     lookingAtCart = true;
@@ -121,7 +120,7 @@ public class FirstPersonPlayer : MonoBehaviour
                 }
             }
 
-            // --- ATUALIZA O TEXTMESHPRO NA TELA ---
+            // --- ATUALIZA O TEXT NA TELA ---
             if (textoAviso != null)
             {
                 textoAviso.gameObject.SetActive(true); 
@@ -150,7 +149,6 @@ void CheckForInteractables()
     int layerMask = ~LayerMask.GetMask("Player");
     Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
     
-    // Pegamos TODOS os objetos que o laser atravessou
     RaycastHit[] hits = Physics.RaycastAll(ray, interactionDistance, layerMask);
 
     if (lastLookedProduct != null)
@@ -166,19 +164,18 @@ void CheckForInteractables()
     // 1. Varre os hits para encontrar o que é mais importante (o Produto)
     foreach (var hit in hits)
     {
-        // --- CÓDIGO NOVO: IGNORA O ITEM NA MÃO ---
+ 
         if (heldProduct != null && hit.collider.gameObject == heldProduct.gameObject)
         {
-            continue; // Pula para o próximo objeto que o laser atravessou
+            continue;
         }
-        // -----------------------------------------
 
         Debug.Log("RAIO-X: Atravessei o objeto: " + hit.collider.name + " (Tag: " + hit.collider.tag + ")");
 
         if (hit.collider.CompareTag("Produto"))
         {
             detectedProduct = hit.collider.GetComponent<Product>();
-            break; // Se achou um produto, ele é a prioridade absoluta
+            break;
         }
         if (hit.collider.CompareTag("CartHandle")) detectedHandle = hit.collider.gameObject;
         if (hit.collider.CompareTag("ShoppingCart")) detectedCartBody = hit.collider.gameObject;

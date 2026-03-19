@@ -36,7 +36,7 @@ public void AddProductToCart(GameObject productObject)
         UpdatePriceUI();
         collectedProducts.Add(productObject);
 
-        // 1. SOLTA NO MUNDO (Não é filho do carrinho ainda)
+        // 1. SOLTA NO MUNDO
         productObject.transform.SetParent(null);
 
         // 2. LIGA A FÍSICA REAL
@@ -55,7 +55,6 @@ public void AddProductToCart(GameObject productObject)
         }
 
         // 3. JOGA O ITEM LÁ DE CIMA PARA CAIR NO CESTO
-        // Aumentamos o raio da queda para evitar que caiam exatamente no mesmo pixel
         float randomX = Random.Range(-0.4f, 0.4f); 
         float randomZ = Random.Range(-0.4f, 0.4f);
         productObject.transform.position = cartInside.position + new Vector3(randomX, 0.8f, randomZ);
@@ -67,7 +66,7 @@ public void AddProductToCart(GameObject productObject)
         StartCoroutine(SettleAndFreeze(productObject));
     }
 
-    // --- A NOVA ROTINA MÁGICA ---
+
     private IEnumerator SettleAndFreeze(GameObject item)
     {
         // Espera 1.5 segundos para a física organizar a pilha
@@ -75,13 +74,11 @@ public void AddProductToCart(GameObject productObject)
 
         if (item != null && collectedProducts.Contains(item))
         {
-            // 1. A CIRURGIA: Arranca o "cérebro físico" do item.
-            // Isso quebra o paradoxo infinito instantaneamente.
+            // 1. Tira a fisica
             Rigidbody rb = item.GetComponent<Rigidbody>();
             if (rb != null) Destroy(rb);
 
-            // 2. Mantém o colisor sólido! 
-            // Assim os próximos itens que caírem vão bater nesta garrafa e empilhar nela.
+            // 2. Mantém o colisor sólido
             Collider col = item.GetComponent<Collider>();
             if (col != null) col.isTrigger = false; 
 
@@ -100,7 +97,7 @@ public void AddProductToCart(GameObject productObject)
             totalPrice -= product.price;
             UpdatePriceUI();
             collectedProducts.Remove(productObject);
-            // Restaurar físicas e colisores para permitir que o produto volte a interagir com o mundo
+            // Restaurar físicas e colisores
             Rigidbody rb = productObject.GetComponent<Rigidbody>();
             if (rb != null)
             {
@@ -118,17 +115,6 @@ public void AddProductToCart(GameObject productObject)
             // Solta o objeto do carrinho
             productObject.transform.SetParent(null);
         }
-    }
-
-    Vector3 CalculateLocalPosition(int index)
-    {
-        int itemsPerRow = 3;
-        int row = index / itemsPerRow;
-        int col = index % itemsPerRow;
-        float x = (col - (itemsPerRow - 1) / 2.0f) * stackXSpacing;
-        float y = row * stackYOffset;
-        float z = 0f;
-        return new Vector3(x, y, z);
     }
 
     void UpdatePriceUI()

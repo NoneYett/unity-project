@@ -17,7 +17,7 @@ public class CheckoutManager : MonoBehaviour
     public CartManager cartManager;
 
     [Header("Nova UI do Cupom")]
-    public TextMeshProUGUI receiptText; // Arraste o TextoListaCompras pra cá!
+    public TextMeshProUGUI receiptText;
 
     // Classe auxiliar para guardar a matemática de cada produto
     private class ItemAgrupado
@@ -41,12 +41,11 @@ public class CheckoutManager : MonoBehaviour
     {
         if (hasCompletedCheckout) return;
 
-        // Ao invés de usar Tag, ele detecta a existência do SEU script do carrinho
         CartManager detectado = other.GetComponentInParent<CartManager>();
         
         if (detectado != null)
         {
-            cartManager = detectado; // O caixa "sequestra" o carrinho que entrou
+            cartManager = detectado;
             OpenCheckout();
         }
     }
@@ -59,7 +58,7 @@ public class CheckoutManager : MonoBehaviour
         if (detectado != null && detectado == cartManager)
         {
             CloseCheckout();
-            cartManager = null; // Limpa a memória quando o carrinho vai embora
+            cartManager = null;
         }
     }
 
@@ -128,7 +127,7 @@ public class CheckoutManager : MonoBehaviour
             }
         }
 
-        // 2. O TEXTO: Montando o visual do Cupom Fiscal
+        // 2.visual do Cupom Fiscal
         string textoDoCupom = "CUPOM FISCAL\n----------------------\n";
 
         foreach (var item in itensComprados.Values)
@@ -143,7 +142,7 @@ public class CheckoutManager : MonoBehaviour
             receiptText.text = textoDoCupom;
         }
 
-        // Mantém o Total Geral funcionando lá embaixo
+        // Total geral
         if (totalText != null)
         {
             totalText.text = "TOTAL A PAGAR: R$ " + cartManager.totalPrice.ToString("F2");
