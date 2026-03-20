@@ -39,6 +39,7 @@ public class CheckoutManager : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        // Se a trava estiver ativa (acabou de pagar ou fechou a tela), ignora a colisão
         if (hasCompletedCheckout) return;
 
         CartManager detectado = other.GetComponentInParent<CartManager>();
@@ -46,19 +47,33 @@ public class CheckoutManager : MonoBehaviour
         if (detectado != null)
         {
             cartManager = detectado;
+
+            // BUG 2 RESOLVIDO: Freio de mão! Zera a inércia do Rigidbody na hora
+            Rigidbody rb = cartManager.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
             OpenCheckout();
         }
     }
 
     void OnTriggerExit(Collider other)
     {
-        if (hasCompletedCheckout) return;
-
         CartManager detectado = other.GetComponentInParent<CartManager>();
-        if (detectado != null && detectado == cartManager)
+        
+        if (detectado != null)
         {
-            CloseCheckout();
-            cartManager = null;
+            // DESTRAVA O CAIXA: O carrinho finalmente saiu da área
+            hasCompletedCheckout = false; 
+
+            if (detectado == cartManager)
+            {
+                CloseCheckout();
+                cartManager = null;
+            }
         }
     }
 
@@ -74,7 +89,7 @@ public class CheckoutManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         
-        Time.timeScale = 0f;
+        Time.timeScale = 0f; // Pausa o jogo
         
         UpdateCheckoutUI();
     }
@@ -91,29 +106,26 @@ public class CheckoutManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         
-        Time.timeScale = 1f;
+        Time.timeScale = 1f; // Despausa o jogo
     }
 
     void UpdateCheckoutUI()
     {
         if (cartManager == null) return;
 
-        // 1. O DICIONÁRIO: Vai agrupar os itens iguais
+        // Agrupa os itens iguais
         Dictionary<string, ItemAgrupado> itensComprados = new Dictionary<string, ItemAgrupado>();
 
-        // Varre tudo que está fisicamente dentro do carrinho
         foreach (GameObject obj in cartManager.collectedProducts)
         {
             Product produto = obj.GetComponent<Product>();
             if (produto != null)
             {
-                // Se o produto já está na lista, só aumenta a quantidade e o preço
                 if (itensComprados.ContainsKey(produto.productName))
                 {
                     itensComprados[produto.productName].quantidade++;
                     itensComprados[produto.productName].precoTotal += produto.price;
                 }
-                // Se é a primeira vez que acha esse produto, cria o registro dele
                 else
                 {
                     itensComprados.Add(produto.productName, new ItemAgrupado
@@ -127,52 +139,27 @@ public class CheckoutManager : MonoBehaviour
             }
         }
 
-        // 2.visual do Cupom Fiscal
+        // Visual do Cupom Fiscal
         string textoDoCupom = "CUPOM FISCAL\n----------------------\n";
 
         foreach (var item in itensComprados.Values)
         {
-            // Formato final: "3x Maçã (R$ 2.50) = R$ 7.50"
             textoDoCupom += $"{item.quantidade}x {item.nome} (R$ {item.precoUnidade:F2}) = R$ {item.precoTotal:F2}\n";
         }
 
-        // 3. ENVIANDO PARA A TELA
         if (receiptText != null)
         {
             receiptText.text = textoDoCupom;
         }
 
-        // Total geral
         if (totalText != null)
         {
             totalText.text = "TOTAL A PAGAR: R$ " + cartManager.totalPrice.ToString("F2");
         }
     }
 
-    float GetCartTotal()
-    {
-        if (cartManager != null)
-            return cartManager.totalPrice; // Lê a variável pública que já existe no seu CartManager
-        return 0f;
-    }
-
-    int GetCartItemCount()
-    {
-        if (cartManager != null)
-            return cartManager.collectedProducts.Count; // Conta o tamanho da sua lista de produtos
-        return 0;
-    }
-
-    int CalculateScore()
-    {
-        // Pontuação baseada em itens coletados
-        // Pode ser expandida para considerar lista de compras
-        return GetCartItemCount() * 100;
-    }
-
     public void FinishShopping()
     {
-        // 1. Destrói os modelos 3D que estão fisicamente dentro do carrinho
         if (cartManager != null)
         {
             foreach (GameObject item in cartManager.collectedProducts)
@@ -180,19 +167,25 @@ public class CheckoutManager : MonoBehaviour
                 Destroy(item);
             }
             
-            // 2. Zera a memória e a conta do carrinho
             cartManager.collectedProducts.Clear();
             cartManager.totalPrice = 0f;
+
+            // BUG 1 RESOLVIDO: Atualiza a interface do HUD do jogador para zero
+            if (cartManager.priceText != null)
+            {
+                cartManager.priceText.text = "Total: R$ 0.00";
+            }
         }
 
-        // 3. Libera o jogador para continuar jogando
-        hasCompletedCheckout = false; // Permite passar no caixa de novo na próxima compra
+        // BUG 2 RESOLVIDO: Trava o caixa para a tela não abrir de novo imediatamente
+        hasCompletedCheckout = true; 
         CloseCheckout();
-        cartManager = null; // Desconecta do carrinho atual
     }
 
     public void ContinueShopping()
     {
+        // Trava o caixa também se ele só fechar a tela sem pagar
+        hasCompletedCheckout = true; 
         CloseCheckout();
     }
 }
