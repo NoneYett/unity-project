@@ -472,7 +472,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: -0.000030517578, y: 36}
+  m_AnchoredPosition: {x: -0.000030517578, y: 19}
   m_SizeDelta: {x: 100, y: 37.5}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &673315677
@@ -696,10 +696,10 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "CONTROLES\nMovimenta\xE7\xE3o: [ W ] [ A ] [ S ] [ D ]\nC\xE2mera: [ Mouse
-    ]\nIntera\xE7\xE3o: [ E ] (Pegar itens e empurrar carrinho)\n\nCOMO JOGAR\nEste
-    \xE9 um ambiente de explora\xE7\xE3o livre, sem um objetivo final.\nPara finalizar
-    suas compras e gerar o cupom fiscal, basta empurrar o carrinho at\xE9 a \xE1rea
-    do caixa."
+    ]\nIntera\xE7\xE3o: [ E ] (Pegar itens e empurrar carrinho)\nVoltar ao Menu:
+    [ ESC ]\n\nCOMO JOGAR\nEste \xE9 um ambiente de explora\xE7\xE3o livre, sem um
+    objetivo final.\nPara finalizar suas compras e gerar o cupom fiscal, basta empurrar
+    o carrinho at\xE9 a \xE1rea do caixa."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e3fc1fbce0fc54bc7947a2eb3b136815, type: 2}
   m_sharedMaterial: {fileID: -2603974732437260856, guid: e3fc1fbce0fc54bc7947a2eb3b136815, type: 2}
@@ -762,7 +762,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 1
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: -125.90508, y: -101.263306, z: -129.60295, w: -33.342037}
+  m_margin: {x: -125.90508, y: -113.341415, z: -129.60295, w: -58.83644}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
